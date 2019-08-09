@@ -7,6 +7,11 @@ public class Apple {
 	public Apple() {
 		super();
 	}
+
+	public Apple(String color){
+		super();
+		this.color = color;
+	}
 	
 	public Apple(String color, int height) {
 		super();

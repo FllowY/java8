@@ -1,10 +1,15 @@
 package stream;
 
+import domain.Apple;
 import domain.Dish;
+import domain.Trader;
+import domain.Transaction;
 import util.LambdaUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class StreamDemo {
     //卡路里级别
@@ -30,9 +35,11 @@ public class StreamDemo {
     }
 
     /**
-     * 体会 Stream 流
+     * Stream 流实践
      */
     public static void tasteStream(){
+
+        /************************************************* 第 4 章 What is Stream？ ************************************************************/
 
         /**
          * 1.初体验
@@ -106,6 +113,9 @@ public class StreamDemo {
          *      2）一些列的中间操作，形成一条中间操作流水线
          *      3）一个终端操作，执行流水线，并生成任意非流的结果
          */
+
+
+        /************************************************* 第 5 章 使用流 ************************************************************/
 
         /**
          * 6.1 筛选流
@@ -193,11 +203,432 @@ public class StreamDemo {
                         .findFirst();
         System.out.println("Optional.orElse:" + first1.orElse(-1));//值存在的时候返回值，否则返回-1
 
+        /**
+         * 9. 归约：将六中的元素组合起来。
+         * reduce:元素求和、最大最小值等
+         * reduce(初始值, BinaryOperator<T> 函数):初始值就是设置一个初始值，函数就是Lambda形式的运算操作。而BinaryOperator用于同类型运算
+         */
+
+        /**
+         * 9.1 元素求和
+         */
+        //传统for-each循环求和
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4);
+        int sum = 0;
+        for (int x : numbers) {
+            sum += x;
+        }
+
+        //使用reduce求和
+        Integer add = numbers.stream().reduce(0, (a, b) -> a + b);//初始值0，运算操作a+b
+        System.out.println(add);
+        //乘法
+        Integer multiply = numbers.stream().reduce(0, (a, b) -> a * b);
+
+        //使用方法引用
+        //Integer有一个静态的sum方法对两个数求和
+        Integer add2 = numbers.stream().reduce(0, Integer::sum);
+
+        /**
+         * reduce无初始值，使用Optional接收返回值，表明reduce值可能不存在
+         */
+        Optional<Integer> optional = numbers.stream().reduce((a, b) -> a + b);
+
+        /**
+         * 9.2 最大最小值
+         */
+        //最大值
+        Optional<Integer> max = numbers.stream().reduce(Integer::max);
+        //最小值
+        Optional<Integer> min = numbers.stream().reduce((a, b) -> a < b ? a : b);
+        Optional<Integer> min2 = numbers.stream().reduce(Integer::min);
+        System.out.println("min = " + min.get() + ", min2 = " + min2.get());//结果都是1
+
+        //虽然都能得到最小值，但显然后者更易读
+
+        //问题：使用map和reduce统计菜单中有多少个菜呢？
+        Integer reduce = menuList.stream().map(m -> 1).reduce(0, Integer::sum);
+        //使用map方法将集合中元素映射成1，然后使用reduce方法进行求和
+
+        //但是怎么看这种实现方式都有点别扭，当然，流已经提供了相应的方法
+        /**
+         * count：统计流中元素个数
+         */
+        long count = menuList.stream().count();
+
+        /**
+         * 10. 几个问题强化理解
+         */
+        //Transaction：交易，Trader：交易员
+        List<Transaction> transactions = Arrays.asList(
+                new Transaction(new Trader("Brian","Cambridge"), 2011, 300),
+                new Transaction(new Trader("Raoul", "Cambridge"), 2012, 1000),
+                new Transaction(new Trader("Raoul", "Cambridge"), 2011, 400),
+                new Transaction(new Trader("Mario","Milan"), 2012, 710),
+                new Transaction(new Trader("Mario","Milan"), 2012, 700),
+                new Transaction(new Trader("Alan","Cambridge"), 2012, 950) );
+
+        //1.找出2011年的所有交易并按交易额排序（从低到高）
+        List<Transaction> tr2011 = transactions.stream()
+                .filter(d -> d.getYear() == 2011)
+                .sorted(Comparator.comparing(Transaction::getValue))
+                .collect(Collectors.toList());
+
+        //2.交易员都在哪些不同的城市工作过
+        List<String> cities = transactions.stream()
+                .map(d -> d.getTrader().getCity())
+                .distinct()
+                .collect(Collectors.toList());
+
+        //新招：你可以去掉distinct()，改用toSet()，这样就会把流转换为集合
+        Set<String> cities1 = transactions.stream()
+                .map(transaction -> transaction.getTrader().getCity())
+                .collect(Collectors.toSet());
+
+        //3.查找所有来自于剑桥的交易员，并按姓名排序
+        List<Trader> traders = transactions.stream()
+                .map(Transaction::getTrader)
+                .filter(trader -> trader.getCity().equals("Cambridge"))
+                .distinct()
+                .sorted(Comparator.comparing(Trader::getName))
+                .collect(Collectors.toList());
+
+        //4.有没有交易员是在米兰工作的
+        boolean anyMatch = transactions.stream()
+                .anyMatch(d -> d.getTrader().getCity().equals("Milan"));
+
+        //...多在工作中使用练习吧!
+
+        /**
+         * 11. 数值流：为了避免装箱操作
+         *      IntStream、DoubleStream和LongStream分别将流中的元素特化为int、long和double
+         *      将流转换为特化版本的常用方法是 mapToInt、mapToDouble 和 mapToLong。它们返回的是一个特化流，而不是Stream<T>
+         */
+        //使用reduce计算菜单中总热量
+        Integer totalCalories = menuList.stream().map(Dish::getCalories).reduce(0, Integer::sum);
+        //注：这段代码有一个问题就是，他有一个暗含的装箱成本。将上边代码拆开成 两 部分更为清晰
+        //Dish::getCalories返回int，需要装箱操作才能存储在流中。而进行sum时，Stream流中的元素是Integer类型，需要先转为int，再进行求和。
+        Stream<Integer> integerStream = menuList.stream().map(Dish::getCalories);
+        Integer sum1 = integerStream.reduce(0, Integer::sum);
+
+        //1.使用特化流计算总热量
+        //a.通过mapToInt方法将流转为特化流。而不是Stream<Integer>
+        IntStream intStream = menuList.stream().mapToInt(Dish::getCalories);
+        //b.通过特化流intStream的方法进行求和
+        int sum2 = intStream.sum();
+        //c.intStream还支持其他方法max,min,average等
+
+        //2.将特化流转为正常流 - boxed()
+//        Stream<Integer> boxed = intStream.boxed();
+
+        /**
+         * 3. 生成数值范围
+         *      IntStream和LongStream：（start,end）
+         *      range和rangeClosed，区别是range不包含结束值，rangeClosed包含结束值
+         */
+        IntStream.range(0, 10).boxed().forEach(System.out::println);//0-9
+        IntStream.rangeClosed(0, 10).boxed().forEach(System.out::println);//0-10
+
+        /**
+         * 12. 构建流
+         */
+        //1.由数值创建流、
+        Stream<Integer> of = Stream.of(1, 2, 3, 4, 5, 3, 6, 7, 3, 2, 1);
+        of.distinct().forEach(System.out::println);//求不重复数并打印
+        //创建了一个字符串流
+        Stream<String> of2 = Stream.of("Hello World","Java");
+        of2.map(String::toUpperCase).forEach(System.out::println);//转成大写
+
+        //2.由数组创建流
+        int[] intArray = {1,2,3,4,5,6};
+        String[] stringArray = {"l","y","w","a"};
+        Apple[] appleArray = {new Apple("red", 10), new Apple("yellow", 100)};
+
+        int sum3 = Arrays.stream(intArray).sum();//整数数组求和
+        Arrays.stream(stringArray).sorted().forEach(System.out::println);//字符数组排序
+        Arrays.stream(appleArray).map(Apple::getHeight).reduce(Integer::max).ifPresent(System.out::println);//获取苹果最大重量，如果存在，就输出这个元素
+
+
+        /************************************************* 第 6 章 收集器 ************************************************************/
+
+        /**
+         * 13. 收集器Collector：使用流收集数据
+         */
+
+        //对交易员按照国家进行分组
+        Map<Trader, List<Transaction>> collect2 = transactions.stream().collect(Collectors.groupingBy(Transaction::getTrader));
+
+        //统计下菜单中菜的个数
+        menuList.stream().collect(Collectors.counting());
+        //当然，这样写更加直接
+        menuList.stream().count();
+
+        /**
+         * 计算流中的最大或最小值: 接收一个Comparator参数来比较流中的元素。
+         * Collectors.maxBy
+         * Collectors.minBy
+         */
+        //查找流中热量最高的菜
+        Optional<Dish> collect3 = menuList.stream().collect(Collectors.maxBy(Comparator.comparingInt(Dish::getCalories)));
+        collect3.ifPresent(System.out::println);//如果存在就输出
+
+        /**
+         * 13.1 汇总
+         *  求和：
+         *      Collectors.summingInt：int型求和
+         *      Collectors.summingDouble：double型求和
+         *      Collectors.summingLong：long型求和
+         *  求平均数：
+         *      Collectors.averagingInt
+         *      Collectors.averagingDouble
+         *      Collectors.averagingLong
+         *
+         *  更全面：
+         *      返回值包含：sum总和，average平均，max最大，min最小，count元素个数。
+         *      Collectors.summarizingInt
+         *      Collectors.summarizingDouble
+         *      Collectors.summarizingLong
+         *
+         *  广义的汇总
+         *      Collectors.reducing
+         */
+
+//        summingInt
+        Integer collect5 = menuList.stream().collect(Collectors.summingInt(Dish::getCalories));
+        System.out.println("Collectors.summingInt="+collect5);
+
+//        averagingInt
+        Double collect6 = menuList.stream().collect(Collectors.averagingInt(Dish::getCalories));
+        System.out.println("Collectors.averagingInt="+collect6);
+
+        //summarizingInt
+        IntSummaryStatistics collect4 = menuList.stream().collect(Collectors.summarizingInt(Dish::getCalories));
+        System.out.println("Sum="+collect4.getSum());
+        System.out.println("Average="+collect4.getAverage());
+        System.out.println("Count="+collect4.getCount());
+        System.out.println("Max="+collect4.getMax());
+        System.out.println("Min="+collect4.getMin());
+
+//        reducing
+        menuList.stream().collect(Collectors.reducing(0, Dish::getCalories, Integer::sum));
+        //其他写法
+        menuList.stream().map(Dish::getCalories).reduce(0, Integer::sum);
+        menuList.stream().mapToInt(Dish::getCalories).sum();
+        /**
+         * 根据实际情况，选择最优解决方案。此处选择第三种，它避免了拆箱操作，效率更高。上面解释了为什么它避免了拆箱
+         * 在通用的方案里面，始终选择最专门化的一个.无论是从可读性还是性能上看，这一般都是最好的决定
+         */
+
+        /**
+         * 13.2 连接字符串
+         * Collectors.joining：支持使用分隔符
+         */
+        List<String> strings = Arrays.asList("hello", "world");
+        String collect7 = strings.stream().collect(Collectors.joining());//helloworld
+        System.out.println("Collectors.joining():"+ collect7);
+
+        //支持分隔符：元素以分隔符分隔开
+        String collect8 = strings.stream().collect(Collectors.joining(","));//hello,world
+        System.out.println("Collectors.joining(\",\"):"+ collect8);
+
+
+        /**
+         * 14. 分组
+         * Collectors.groupingBy
+         */
+
+//        对交易员按照国家进行分组
+        Map<Trader, List<Transaction>> groupingBymap = transactions.stream().collect(Collectors.groupingBy(Transaction::getTrader));
+
+        //菜单中的菜按照类型进行分类，鱼类放在一起，肉类放在一起等。。
+        Map<Dish.Type, List<Dish>> groupingBy = menuList.stream().collect(Collectors.groupingBy(Dish::getType));
+        System.out.println(groupingBy);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
+
+        //按照低热量和高热量进行分组。小于400低热量；大于400小于700普通，大于700高热量
+        Map<CaloricLevel, List<Dish>> collect9 = menuList.stream().collect(Collectors.groupingBy(dish -> {
+            if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+            else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+            else return CaloricLevel.FAT;
+        }));
+        System.out.println(collect9);//{FAT=[pork], NORMAL=[beef, french fries, pizza, salmon], DIET=[chicken, rice, season fruit, prawns]}
+
+        /**
+         * 14.2 多级分组：将GroupingBy分为多级，级嵌套型。
+         */
+        Map<Dish.Type, Map<CaloricLevel, List<Dish>>> collect10 = menuList.stream().collect(
+                Collectors.groupingBy(Dish::getType, //先按照类型分组
+                        Collectors.groupingBy(dish -> {//再根据热量分组
+                            if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+                            else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+                            else return CaloricLevel.FAT;
+                        })
+                )
+        );
+        System.out.println(collect10);
+        /**
+         * {
+         *  OTHER={
+         *      NORMAL=[french fries, pizza],
+         *      DIET=[rice, season fruit]},
+         *  MEAT={
+         *      FAT=[pork],
+         *      NORMAL=[beef],
+         *      DIET=[chicken]},
+         * FISH={
+         *      NORMAL=[salmon],
+         *      DIET=[prawns]}}
+         */
+
+//        而，单个GroupingBuy又相当于
+        //因为他是吧每个TYPE下的元素封装进LiST中
+        Map<Dish.Type, List<Dish>> collect11 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.toList()));
+        System.out.println(collect11);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
+        //也就是说，groupbying的第二个参数，不一定是多级分组，它可以是任何类型
+        //统计没类菜有多少个
+        Map<Dish.Type, Long> collect12 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.counting()));
+        System.out.println(collect12);//{OTHER=4, MEAT=3, FISH=2}
+
+        //查找每个分类下热量最高的菜
+        //使用Optional接收是为了处理没有值得情况
+        Map<Dish.Type, Optional<Dish>> collect13 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.maxBy(Comparator.comparingInt(Dish::getCalories))));
+        System.out.println(collect13);//{OTHER=Optional[pizza], MEAT=Optional[pork], FISH=Optional[salmon]}
+
+        /**
+         * Collectors.collectingAndThen：转换函数返回的类型
+         */
+//        把groupingBy收集器返回的结果转换成另一种类型
+        //同样是：查找每个分类下热量最高的菜,不返回Optional
+        Map<Dish.Type, Dish> collect14 = menuList.stream()
+                .collect(Collectors.groupingBy(
+                        Dish::getType,
+                        Collectors.collectingAndThen(
+                                Collectors.maxBy(Comparator.comparingInt(Dish::getCalories)),
+                                Optional::get)));
+        System.out.println(collect14);//{OTHER=pizza, MEAT=pork, FISH=salmon}
+
+
+        //求出每种类型菜的总热量
+        Map<Dish.Type, Integer> collect15 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.summingInt(Dish::getCalories)));
+        System.out.println(collect15);//{OTHER=1550, MEAT=1900, FISH=750}
+
+        //mapping收集器
+        Map<Dish.Type, Set<String>> collect16 = menuList.stream().collect(Collectors.groupingBy(
+                Dish::getType,
+                Collectors.mapping(
+                        Dish::getName, //将Dish -> name
+                        Collectors.toSet()//转Set
+                )));
+        System.out.println(collect16);//{OTHER=[season fruit, pizza, rice, french fries], MEAT=[chicken, beef, pork], FISH=[salmon, prawns]}
+
+
+        /**
+         * 15. 分区：分区是分组的特殊情况。
+         *      分区函数返回一个Boolean值，所以分组Map的键类型是Boolean,即分组之后true为一组；false为一组
+         *
+         *     Collectors.partitioningBy（boolean flag）
+         */
+        //菜单按照素数和非素食分开
+        Map<Boolean, List<Dish>> collect17 = menuList.stream().collect(Collectors.partitioningBy(Dish::isVegetarian));
+        System.out.println(collect17);//{false=[pork, beef, chicken, prawns, salmon], true=[french fries, rice, season fruit, pizza]}
+        collect17.get(true);
+        collect17.get(false);
+        //当然，使用filter也可以实现
+        menuList.stream().filter(Dish::isVegetarian).collect(Collectors.toList());
+
+        //partitioningBy的一个重载版本，传递第 2 个收集器
+        Map<Boolean, Map<Dish.Type, List<Dish>>> collect18 = menuList.stream().collect(
+                Collectors.partitioningBy(
+                        Dish::isVegetarian,
+                        Collectors.groupingBy(Dish::getType)));
+        System.out.println(collect18);//{false={MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}, true={OTHER=[french fries, rice, season fruit, pizza]}}
+
+        //统计素数菜几个，非素食菜几个
+        Map<Boolean, Long> collect19 = menuList.stream().collect(Collectors.partitioningBy(Dish::isVegetarian, Collectors.counting()));
+        System.out.println(collect19);//{false=5, true=4}
+
+        /**
+         * 16 收集器分析
+         *
+         * public interface Collector<T, A, R> {
+         *      Supplier<A> supplier(); 创建一个集合，供数据收集过程使用
+         *      BiConsumer<A, T> accumulator(); 将元素添加到集合当中
+         *      Function<A, R> finisher();  将accumulator中的对象转换为整个集合的最终结果
+         *      BinaryOperator<A> combiner();   同类型操作，合并两个结果容器
+         *      Set<Characteristics> characteristics(); 返回一个Set，它定义了收集器的行为。尤其是流是否可以进行并行归约，以及可以使用哪些优化的提示。
+         * }
+         *
+         *
+         */
+//        1. Supplier<A> supplier()    创建一个集合，供数据收集过程使用
+//        public Supplier<List<T>> supplier(){
+//            return ()->new ArrayList<T>();
+//            return ArrayList::new;
+//        }
+
+//        2. BiConsumer<A, T> accumulator(); 将元素添加到集合当中
+//        public BiConsumer<List<T>, T> accumulator(){
+//            return (list, item)->list.add(item);
+//            return List::add;
+//        }
+
+//        3. Set<Characteristics> characteristics(); 返回一个Set，它定义了收集器的行为。尤其是流是否可以进行并行归约，以及可以使用哪些优化的提示。
+//        Characteristics是一个包含三个项目的枚举。
+//            UNORDERED—归约结果 不受流中项目的遍历顺序和累积顺序的影响
+//            CONCURRENT—accumulator函数可以从多个线程同时调用，且该收集器可以并行归约流。如果收集器没有标为UNORDERED，那它仅在用于无序数据源时才可以并行归约。
+//            IDENTITY_FINISH—累加器对象将会直接用作归约过程的最终结果。这也意味着，将累加器A不加检查地转换为结果R是安全的。
+
+        /**
+         * 17. 自定义收集器
+         */
+
+        /************************************************* 第 7 章 并行流 ************************************************************/
+
+        //并行流就是把一个内容分成多个数据块，并用不同的线程分别处理每个数据块的流。充分利用CPU
+
+        //Java7之前，并行处理非常麻烦。你需要吧一个“集合”进行分段，每段数据分配一个独立的线程，可能还会引入同步避免由于竞争引发的线程安全问题。最后，等待所有线程完成，把结果合并成最终结果。
+
+        //Java 7  中引入了 分支/合并框架，让这些操作更稳定，不易出错、
+
+        //Java 8 中使用parallelStream可以声明一个并行流，其幕后是使用 分支/合并 框架实现的。
+        //了解并行流内部是如何工作的是很重要的。工作中也有很多坑，很可能会因为误用并行流导致线上重大BUG问题
+
+
+        /**
+         * 1. 并行与顺序执行
+         * parallel():之后进行的所有操作都并行执行
+         * sequential()：之后的操作顺序执行
+         */
+        //控制那些操作顺序执行，那些操作并行执行
+        menuList.stream()
+                .filter(dish -> dish.getCalories()>0)
+                .sequential()
+                .mapToInt(Dish::getCalories)
+                .parallel()
+                .sum();
+//        最后一次parallel或sequential调用会影响整个流水线。例如上个例子中，最后调用的是parallel(),所以整个流水线最后会并行执行
+        //使用mapToInt避免了装箱操作。
+
+        /**
+         * 并行流使用的线程池？线程从哪里来的？有多少个？
+         * 并行流内部使用了默认ForkJoinPool（分支/合并框架），默认的线程数量是你机器的处理器的数量
+         *      得到处理器数量值：Runtime.getRuntime().availableProcessors()
+         *
+         * 可以通过系统属性改变线程池大小
+         *      System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "12")
+         * 但它是一个全局的设置，也就是说，它将影响代码中所有的并行流。反过来说，目前无法为某个特定的并行流指定这个值。
+         * 【不建议修改这个值】让ForkJoinPool的大小等于处理器数量是个不错的默认值。
+         *
+         */
+        out(Runtime.getRuntime().availableProcessors());
+//        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "12");
+
+
+
 
     }
 
-
-
-
+    public static void out(Object o){
+        System.out.println(o);
+    }
 
 }

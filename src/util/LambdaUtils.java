@@ -44,12 +44,14 @@ public class LambdaUtils {
     /**
      * 改变集合中元素
      * @param list
-     * @param consumer
+     * @param consumers
      * @param <T>
      */
-    public static <T> List<T> consumer(List<T> list, Consumer<T> consumer){
+    public static <T> List<T> consumer(List<T> list, Consumer<T>... consumers){
         for(T t : list){
-            consumer.accept(t);
+            for(Consumer<T> co: consumers){
+                co.accept(t);
+            }
         }
         return list;
     }

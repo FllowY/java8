@@ -53,6 +53,7 @@ public class LambdaDemo {
     }
 
     public static void main(String[] args) {
+
         filterApples();
         comsumerApples();
         functiuonApples();
@@ -66,7 +67,7 @@ public class LambdaDemo {
     }
 
     public static void comsumerApples(){
-        LambdaUtils.out("改变苹果重量：", LambdaUtils.consumer(appleList, apple -> apple.setHeight(50)));
+        LambdaUtils.out("改变苹果重量：", LambdaUtils.consumer(appleList, apple -> apple.setHeight(50), apple -> apple.setColor("ggg")));
     }
 
     public static void functiuonApples(){
