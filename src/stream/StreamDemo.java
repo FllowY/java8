@@ -29,7 +29,6 @@ public class StreamDemo {
                 new Dish("prawns", false, 300, Dish.Type.FISH),
                 new Dish("salmon", false, 450, Dish.Type.FISH));
     }
-
     public static void main(String[] args) {
         tasteStream();
     }
@@ -45,11 +44,13 @@ public class StreamDemo {
          * 1.初体验
          * 注意：尽管filter和map是两个独立的操作，但他们合并到同一次遍历中了。
          */
+        long start = System.currentTimeMillis();
         List<String> namesGt5 = menuList.stream()
                 .filter(dish -> dish.getCalories() > 500)//筛选热量大于500
                 .map(Dish::getName)//获取名字
                 .limit(3)//前三个
                 .collect(Collectors.toList());//转List
+        out("非并行时间", System.currentTimeMillis()-start);
         LambdaUtils.out("[filter]热量>500 & [map]获取名字 & [limit]3个", namesGt5);
 
         /**
@@ -57,11 +58,13 @@ public class StreamDemo {
          *      为了利用【多核】架构【并行】执行这段代码，把stream()换成parallelStream()
          * 注意：parallelStream()在正式环境中非常容易出现问题，具有一定的不稳定行，慎用！！！
          */
+        long start2 = System.currentTimeMillis();
         List<String> namesGt5Parallel = menuList.parallelStream()
                 .filter(dish -> dish.getCalories() > 500)//筛选热量大于500
                 .map(Dish::getName)//获取名字
                 .limit(3)//前三个
                 .collect(Collectors.toList());//转List
+        out("并行时间", System.currentTimeMillis()-start2);
         LambdaUtils.out("# parallelStream # [filter]热量>500 & [map]获取名字 & [limit]3个", namesGt5Parallel);
 
         /**
@@ -192,7 +195,7 @@ public class StreamDemo {
          */
         menuList.stream().filter(Dish::isVegetarian)
                 .findAny()//findAny()
-                .ifPresent(d -> System.out.println(d.getName()));//如果结果集中存在，则输出名字，否则什么都不做，避免了null异常
+                .ifPresent(d -> out("筛选素食Optional.ifPresent", d.getName()));//如果结果集中存在，则输出名字，否则什么都不做，避免了null异常
 
         //举例
         List<Integer> someNumbers = Arrays.asList(1, 2, 3, 4, 5);
@@ -201,7 +204,7 @@ public class StreamDemo {
                         .map(x -> x * x)
                         .filter(x -> x % 7 == 0)
                         .findFirst();
-        System.out.println("Optional.orElse:" + first1.orElse(-1));//值存在的时候返回值，否则返回-1
+        out("Optional.orElse", first1.orElse(-1));//值存在的时候返回值，否则返回-1
 
         /**
          * 9. 归约：将六中的元素组合起来。
@@ -221,7 +224,7 @@ public class StreamDemo {
 
         //使用reduce求和
         Integer add = numbers.stream().reduce(0, (a, b) -> a + b);//初始值0，运算操作a+b
-        System.out.println(add);
+        out("使用reduce求和",add);
         //乘法
         Integer multiply = numbers.stream().reduce(0, (a, b) -> a * b);
 
@@ -395,19 +398,19 @@ public class StreamDemo {
 
 //        summingInt
         Integer collect5 = menuList.stream().collect(Collectors.summingInt(Dish::getCalories));
-        System.out.println("Collectors.summingInt="+collect5);
+        out("Collectors.summingInt",collect5);
 
 //        averagingInt
         Double collect6 = menuList.stream().collect(Collectors.averagingInt(Dish::getCalories));
-        System.out.println("Collectors.averagingInt="+collect6);
+        out("Collectors.averagingInt",collect6);
 
         //summarizingInt
         IntSummaryStatistics collect4 = menuList.stream().collect(Collectors.summarizingInt(Dish::getCalories));
-        System.out.println("Sum="+collect4.getSum());
-        System.out.println("Average="+collect4.getAverage());
-        System.out.println("Count="+collect4.getCount());
-        System.out.println("Max="+collect4.getMax());
-        System.out.println("Min="+collect4.getMin());
+        out("Sum", collect4.getSum());
+        out("Average", collect4.getAverage());
+        out("Count", collect4.getCount());
+        out("Max", collect4.getMax());
+        out("Min", collect4.getMin());
 
 //        reducing
         menuList.stream().collect(Collectors.reducing(0, Dish::getCalories, Integer::sum));
@@ -425,11 +428,11 @@ public class StreamDemo {
          */
         List<String> strings = Arrays.asList("hello", "world");
         String collect7 = strings.stream().collect(Collectors.joining());//helloworld
-        System.out.println("Collectors.joining():"+ collect7);
+        out("Collectors.joining()", collect7);
 
         //支持分隔符：元素以分隔符分隔开
         String collect8 = strings.stream().collect(Collectors.joining(","));//hello,world
-        System.out.println("Collectors.joining(\",\"):"+ collect8);
+        out("Collectors.joining(\",\")", collect8);
 
 
         /**
@@ -442,7 +445,7 @@ public class StreamDemo {
 
         //菜单中的菜按照类型进行分类，鱼类放在一起，肉类放在一起等。。
         Map<Dish.Type, List<Dish>> groupingBy = menuList.stream().collect(Collectors.groupingBy(Dish::getType));
-        System.out.println(groupingBy);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
+        out("菜单中的菜按照类型进行分类，鱼类放在一起，肉类放在一起",groupingBy);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
 
         //按照低热量和高热量进行分组。小于400低热量；大于400小于700普通，大于700高热量
         Map<CaloricLevel, List<Dish>> collect9 = menuList.stream().collect(Collectors.groupingBy(dish -> {
@@ -450,7 +453,7 @@ public class StreamDemo {
             else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
             else return CaloricLevel.FAT;
         }));
-        System.out.println(collect9);//{FAT=[pork], NORMAL=[beef, french fries, pizza, salmon], DIET=[chicken, rice, season fruit, prawns]}
+        out("按照低热量和高热量进行分组。小于400低热量；大于400小于700普通，大于700高热量",collect9);//{FAT=[pork], NORMAL=[beef, french fries, pizza, salmon], DIET=[chicken, rice, season fruit, prawns]}
 
         /**
          * 14.2 多级分组：将GroupingBy分为多级，级嵌套型。
@@ -464,7 +467,7 @@ public class StreamDemo {
                         })
                 )
         );
-        System.out.println(collect10);
+        out("多级分组,先按照类型分组,再根据热量分组",collect10);
         /**
          * {
          *  OTHER={
@@ -482,16 +485,17 @@ public class StreamDemo {
 //        而，单个GroupingBuy又相当于
         //因为他是吧每个TYPE下的元素封装进LiST中
         Map<Dish.Type, List<Dish>> collect11 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.toList()));
-        System.out.println(collect11);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
+        out("吧每个TYPE下的元素封装进LiST中",collect11);//{OTHER=[french fries, rice, season fruit, pizza], MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}
+
         //也就是说，groupbying的第二个参数，不一定是多级分组，它可以是任何类型
         //统计没类菜有多少个
         Map<Dish.Type, Long> collect12 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.counting()));
-        System.out.println(collect12);//{OTHER=4, MEAT=3, FISH=2}
+        out("统计没类菜有多少个", collect12);//{OTHER=4, MEAT=3, FISH=2}
 
         //查找每个分类下热量最高的菜
         //使用Optional接收是为了处理没有值得情况
         Map<Dish.Type, Optional<Dish>> collect13 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.maxBy(Comparator.comparingInt(Dish::getCalories))));
-        System.out.println(collect13);//{OTHER=Optional[pizza], MEAT=Optional[pork], FISH=Optional[salmon]}
+        out("查找每个分类下热量最高的菜", collect13);//{OTHER=Optional[pizza], MEAT=Optional[pork], FISH=Optional[salmon]}
 
         /**
          * Collectors.collectingAndThen：转换函数返回的类型
@@ -504,12 +508,12 @@ public class StreamDemo {
                         Collectors.collectingAndThen(
                                 Collectors.maxBy(Comparator.comparingInt(Dish::getCalories)),
                                 Optional::get)));
-        System.out.println(collect14);//{OTHER=pizza, MEAT=pork, FISH=salmon}
+        out("查找每个分类下热量最高的菜,不返回Optional", collect14);//{OTHER=pizza, MEAT=pork, FISH=salmon}
 
 
         //求出每种类型菜的总热量
         Map<Dish.Type, Integer> collect15 = menuList.stream().collect(Collectors.groupingBy(Dish::getType, Collectors.summingInt(Dish::getCalories)));
-        System.out.println(collect15);//{OTHER=1550, MEAT=1900, FISH=750}
+        out("求出每种类型菜的总热量",collect15);//{OTHER=1550, MEAT=1900, FISH=750}
 
         //mapping收集器
         Map<Dish.Type, Set<String>> collect16 = menuList.stream().collect(Collectors.groupingBy(
@@ -518,7 +522,7 @@ public class StreamDemo {
                         Dish::getName, //将Dish -> name
                         Collectors.toSet()//转Set
                 )));
-        System.out.println(collect16);//{OTHER=[season fruit, pizza, rice, french fries], MEAT=[chicken, beef, pork], FISH=[salmon, prawns]}
+        out("mapping收集器", collect16);//{OTHER=[season fruit, pizza, rice, french fries], MEAT=[chicken, beef, pork], FISH=[salmon, prawns]}
 
 
         /**
@@ -529,7 +533,7 @@ public class StreamDemo {
          */
         //菜单按照素数和非素食分开
         Map<Boolean, List<Dish>> collect17 = menuList.stream().collect(Collectors.partitioningBy(Dish::isVegetarian));
-        System.out.println(collect17);//{false=[pork, beef, chicken, prawns, salmon], true=[french fries, rice, season fruit, pizza]}
+        out("菜单按照素数和非素食分开", collect17);//{false=[pork, beef, chicken, prawns, salmon], true=[french fries, rice, season fruit, pizza]}
         collect17.get(true);
         collect17.get(false);
         //当然，使用filter也可以实现
@@ -540,11 +544,11 @@ public class StreamDemo {
                 Collectors.partitioningBy(
                         Dish::isVegetarian,
                         Collectors.groupingBy(Dish::getType)));
-        System.out.println(collect18);//{false={MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}, true={OTHER=[french fries, rice, season fruit, pizza]}}
+        out("partitioningBy的一个重载版本，传递第 2 个收集器", collect18);//{false={MEAT=[pork, beef, chicken], FISH=[prawns, salmon]}, true={OTHER=[french fries, rice, season fruit, pizza]}}
 
         //统计素数菜几个，非素食菜几个
         Map<Boolean, Long> collect19 = menuList.stream().collect(Collectors.partitioningBy(Dish::isVegetarian, Collectors.counting()));
-        System.out.println(collect19);//{false=5, true=4}
+        out("统计素数菜几个，非素食菜几个", collect19);//{false=5, true=4}
 
         /**
          * 16 收集器分析
@@ -619,16 +623,79 @@ public class StreamDemo {
          * 【不建议修改这个值】让ForkJoinPool的大小等于处理器数量是个不错的默认值。
          *
          */
-        out(Runtime.getRuntime().availableProcessors());
+        out("处理器数量值",Runtime.getRuntime().availableProcessors());
 //        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "12");
 
 
+//       1. 有时候并行流甚至比串行流速度慢很多
+        /**
+         * 原因有 2：
+         * 其一，iterator生成的是装箱的对象，必须拆箱才能进行求和等操作
+         * 其二，很难把iterator分成多个独立块来并行执行。因为每次应用这个函数都要依赖前一次应用的结果（iterator在本质上是顺序的）。
+         */
+//        所以在调用那个看似神奇的parallel操作时，了解背后到底发生了什么是很有必要的。否则可能适得其反。
+
+        //使用正确的数据结构 然后使其 并行 工作能够保证 最佳 的性能。（避免拆装箱）
+
+        //2. 正确的使用并行流：确保结果正确
+//        错误使用并行流的一个常用场景就是：就是改变了共享变量。因为并行过程会分段，每段独立一个线程。这样就会产生线程安全的问题。不要尝试使用同步解决这类问题，那完全失去了并行的意义。
+
+        /**
+         * 总结：如何高效的利用并行流
+         * 1.避免自动装箱和拆箱，它会降低性能。Java8中有原始类型流（IntStream,LongStream,DoubleStream）来避免拆装箱。
+         * 2.有些操作本身在并行流上的性能就比顺序流差。特别是 limit 和 findFirst 等依赖于于元素顺序的操作，他们在并行流上执行的代价非常大。
+         *      例如：findAny要比findFirst性能好，因为它不需要按顺序来执行。
+         *      也可以调用unordered方法把 有序流 变成 无序流 。
+         *          那么如果你拿流中的 n个元素 而不是 前n个元素 。对于无序的并行流调用 limit 可能会比 单个有序流（比如数据源是List） 更高效。
+         * 3.如果数据量较小，不建议使用并行流。因为，并行处理少数几个元素的好处还 抵不过 并行化造成的额外开销。
+         * 4.考虑流背后的数据结构是否易于分解。因为并行流需要将数据分段。例如ArrayLIst的拆分效率比LinkedList高的多。因为前者不需要遍历就可以平均拆分。而后者则必须遍历。
+         * 5.使用filter的流不建议使用并行流。例如：本来List大小是确定的，并行流可以拆分成多段数据处理。但是筛选操作可能丢弃的元素个数是不确定的，导致流本身的大小也是未知的。
+         * 6.考虑收集器Collectors收集过程的代价大小。如果收集代价很大，那么组合每个子流所付出的代价很可能超过并行流带来的性能提升。
+         */
+//        流数据源是否适用于并行总结。
+
+//        源             可分解性
+//        ArrayList         极佳
+//        LinkedList        差
+//        IntStream.range   极佳
+//        Stream.iterate    差
+//        HashSet           好
+//        TreeSet           好
+
+        long start3 = System.currentTimeMillis();
+        IntStream.rangeClosed(0, 1000000).filter(value -> value%2==0).boxed().findFirst();
+        out("非并行时间", System.currentTimeMillis()-start3);
+
+        long start4 = System.currentTimeMillis();
+        IntStream.rangeClosed(0, 1000000).parallel().filter(value -> value%2==0).boxed().findFirst();
+        out("并行时间", System.currentTimeMillis()-start4);
+
+//        上面这段代码使用并行流效率非常高
+        //上面说法也不一定准确！！！！！！！！！！！！！所以要看具体场景吧
+//        但是并行流具有一定的不稳定性，不要一遇到流就使用并行流。它可能给你带来灾难。
+
+
+
+
+        /**
+         * 并行流后盾：分支/合并框架
+         *      以递归的方式将可以并行的任务拆分成更小的任务，然后将每个子任务的结果合并起来生成最终结果。
+         */
+
+
+
+
+
+
+
 
 
     }
 
-    public static void out(Object o){
-        System.out.println(o);
+    public static void out(String msg, Object o){
+        System.out.println(msg+" : "+o);
     }
+
+
 
 }
