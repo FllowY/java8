@@ -649,7 +649,7 @@ public class StreamDemo {
          *          那么如果你拿流中的 n个元素 而不是 前n个元素 。对于无序的并行流调用 limit 可能会比 单个有序流（比如数据源是List） 更高效。
          * 3.如果数据量较小，不建议使用并行流。因为，并行处理少数几个元素的好处还 抵不过 并行化造成的额外开销。
          * 4.考虑流背后的数据结构是否易于分解。因为并行流需要将数据分段。例如ArrayLIst的拆分效率比LinkedList高的多。因为前者不需要遍历就可以平均拆分。而后者则必须遍历。
-         * 5.使用filter的流不建议使用并行流。例如：本来List大小是确定的，并行流可以拆分成多段数据处理。但是筛选操作可能丢弃的元素个数是不确定的，导致流本身的大小也是未知的。
+         * 5.【不准确】使用filter的流不建议使用并行流。例如：本来List大小是确定的，并行流可以拆分成多段数据处理。但是筛选操作可能丢弃的元素个数是不确定的，导致流本身的大小也是未知的。
          * 6.考虑收集器Collectors收集过程的代价大小。如果收集代价很大，那么组合每个子流所付出的代价很可能超过并行流带来的性能提升。
          */
 //        流数据源是否适用于并行总结。
@@ -674,16 +674,43 @@ public class StreamDemo {
         //上面说法也不一定准确！！！！！！！！！！！！！所以要看具体场景吧
 //        但是并行流具有一定的不稳定性，不要一遇到流就使用并行流。它可能给你带来灾难。
 
-
-
-
         /**
          * 并行流后盾：分支/合并框架
          *      以递归的方式将可以并行的任务拆分成更小的任务，然后将每个子任务的结果合并起来生成最终结果。
          */
 
 
+        /**
+         * Stream流水线调试：使用peek打日志
+         */
+        menuList.stream()
+                .peek(dish -> System.out.println("before map"+dish))
+                .map(Dish::getCalories)
+                .peek(integer -> System.out.println("after map"+integer))
+                .collect(Collectors.toList());
 
+
+
+/************************************************* 第 9 章 默认方法 ************************************************************/
+
+/**
+ * 默认方法：使用default修饰符
+ * 任何一个实现了XXX接口的类，都会自动继承XXX的实现
+ */
+//
+//        List【接口】中的默认方法！
+//        public interface List<E> extends Collection<E> {
+//
+//            default void sort(Comparator<? super E> c) {
+//                Object[] a = this.toArray();
+//                Arrays.sort(a, (Comparator) c);
+//                ListIterator<E> i = this.listIterator();
+//                for (Object e : a) {
+//                    i.next();
+//                    i.set((E) e);
+//                }
+//            }
+//        }
 
 
 
