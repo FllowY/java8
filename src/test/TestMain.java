@@ -1,8 +1,25 @@
 package test;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class TestMain {
 
     public static void main(String[] args) {
+
+
+        List<Integer> list1 = Arrays.asList(2, 6, 5,7);
+        List<Integer> list2 = Arrays.asList(1, 2, 3, 4, 5);
+        list1.stream().filter(o -> !list2.contains(o)).forEach(System.out::println);
+//        collect.stream().forEach();
+
+
+//        Collectors.toSet去重
+//        Set<Integer> collect = Arrays.asList(1, 2, 3, 4, 1, 2, 3, 0, 0, 4, 6, 7).stream().collect(Collectors.toSet());
+//        for(Integer a: collect){
+//            System.out.println(a);
+//        }
+
 //        AtomicInteger counter = new AtomicInteger(0);
 //
 ////        System.out.println("counter.incrementAndGet():" + counter.incrementAndGet());//i++;
