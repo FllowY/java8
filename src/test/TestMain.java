@@ -1,16 +1,25 @@
 package test;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.regex.Pattern;
 
 public class TestMain {
 
     public static void main(String[] args) {
 
 
-        List<Integer> list1 = Arrays.asList(2, 6, 5,7);
-        List<Integer> list2 = Arrays.asList(1, 2, 3, 4, 5);
-        list1.stream().filter(o -> !list2.contains(o)).forEach(System.out::println);
+//        boolean matches = Pattern.matches("^[0-9]|[1-9][0-9]|100$", "100");
+        boolean matches = Pattern.matches("^([0-9]|[1-9][0-9])(\\.\\d{1,2})|[0-9]|[1-9][0-9]|100|100.00|0|0.00?$", "66.00");
+//        boolean matches = Pattern.matches("^(\\d|[1-9]\\d|100)(\\.\\d{1,2})?$", "0.00");
+        System.out.println(matches);
+
+
+        System.out.println(Arrays.asList(0,1,2).stream().filter(a -> a>0).findAny().orElse(9));
+
+
+//        List<Integer> list1 = Arrays.asList(2, 6, 5,7);
+//        List<Integer> list2 = Arrays.asList(1, 2, 3, 4, 5);
+//        list1.stream().filter(o -> !list2.contains(o)).forEach(System.out::println);
 //        collect.stream().forEach();
 
 
